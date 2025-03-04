@@ -36,8 +36,10 @@ import launch_pytest
 import logging
 import rclpy.node
 
+import time
+
 # fixture scope for all fixtures
-scope = "function"
+scope = "module"
 
 
 # Fixtures for use with the integration tests.
@@ -46,17 +48,7 @@ def initial_joint_controller(request):
     return request.param
 
 
-@pytest.fixture(scope=scope, params=["", "my_ur_"])
-def tf_prefix(request):
-    return request.param
-
-
-@pytest.fixture(scope=scope, params=["false", "true"])
-def mock_hardware(request):
-    return request.param
-
-
-@pytest.fixture(scope=scope, params=[0, 1])
+@pytest.fixture(scope=scope, params=[0, 1, 2])
 def params(request):
     params = [
         {"tf_prefix": "", "mock_hardware": "false"},
@@ -65,16 +57,16 @@ def params(request):
     return params[request.param]
 
 
-# Could also be passed like this, but that result in each test being executed 4 times, instead of 2, which seems excessive:
-#   @launch_pytest.fixture(scope=scope, autouse=True, auto_shutdown=True)
-#   def launch_description(tf_prefix, mock_hardware):
-#       return generate_driver_test_description(tf_prefix=tf_prefix, mock_hardware=mock_hardware)
-
-
-# This only gives 2 exeecutions of each test
-@launch_pytest.fixture(scope=scope, autouse=True, auto_shutdown=True)
+@launch_pytest.fixture(
+    scope=scope,
+    autouse=True,
+    auto_shutdown=True,
+)
+@pytest.mark.usefixtures("params")
 def launch_description(params):
     print("-------------LAUNCHING DRIVER -------------------------------")
+    print(params)
+    time.sleep(2)
     tf_prefix = params["tf_prefix"]
     mock_hardware = params["mock_hardware"]
     return generate_driver_test_description(tf_prefix=tf_prefix, mock_hardware=mock_hardware)
@@ -97,6 +89,7 @@ def rclpy_init():
 
 
 @pytest.fixture(scope=scope)
+@pytest.mark.usefixtures("rclpy_init")
 def node(rclpy_init):
     """
     Creates a node with a given name.
@@ -113,7 +106,9 @@ def node(rclpy_init):
 
 
 @pytest.fixture(scope=scope)
+@pytest.mark.usefixtures("node")
 def robot(node, params):
     interface = interfaces(node, params)
     interface.init_interfaces()
+    interface.start_robot()
     yield interface

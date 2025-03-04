@@ -31,6 +31,9 @@ import os
 import sys
 import time
 import rclpy
+
+import pytest
+
 from builtin_interfaces.msg import Duration
 from control_msgs.action import FollowJointTrajectory
 from control_msgs.msg import JointTolerance
@@ -42,7 +45,11 @@ from ur_msgs.msg import IOStates
 sys.path.append(os.path.dirname(__file__))
 from test_common import ROBOT_JOINTS, TIMEOUT_EXECUTE_TRAJECTORY  # noqa: E402
 
+from conftest import launch_description  # noqa: E402
 
+
+@pytest.mark.launch(fixture=launch_description)
+@pytest.mark.usefixtures("robot")
 def test_get_robot_software_version(robot):
     if not robot.mock_hardware:
         assert robot._configuration_controller_interface.get_robot_software_version().major != 0
@@ -50,6 +57,8 @@ def test_get_robot_software_version(robot):
         assert robot._configuration_controller_interface.get_robot_software_version().major == 0
 
 
+@pytest.mark.launch(fixture=launch_description)
+@pytest.mark.usefixtures("robot")
 def test_start_scaled_jtc_controller(robot):
     assert robot._controller_manager_interface.switch_controller(
         strictness=SwitchController.Request.BEST_EFFORT,
@@ -57,6 +66,8 @@ def test_start_scaled_jtc_controller(robot):
     ).ok
 
 
+@pytest.mark.launch(fixture=launch_description)
+@pytest.mark.usefixtures("robot")
 def test_start_passthrough_controller(robot):
     assert robot._controller_manager_interface.switch_controller(
         strictness=SwitchController.Request.BEST_EFFORT,
@@ -70,6 +81,8 @@ def test_start_passthrough_controller(robot):
     ).ok
 
 
+@pytest.mark.launch(fixture=launch_description)
+@pytest.mark.usefixtures("robot")
 def test_set_io(robot):
     """Test to set an IO and check whether it has been set."""
     # Create io callback to verify result
@@ -121,6 +134,8 @@ def test_set_io(robot):
     robot.node.destroy_subscription(io_states_sub)
 
 
+@pytest.mark.launch(fixture=launch_description)
+@pytest.mark.usefixtures("robot")
 def test_trajectory(robot):
     """Test robot movement."""
     # Construct test trajectory
@@ -150,6 +165,8 @@ def test_trajectory(robot):
     assert result.error_code == FollowJointTrajectory.Result.SUCCESSFUL
 
 
+@pytest.mark.launch(fixture=launch_description)
+@pytest.mark.usefixtures("robot")
 def test_illegal_trajectory(robot):
     """
     Test trajectory server.
@@ -180,6 +197,8 @@ def test_illegal_trajectory(robot):
     assert not goal_handle.accepted
 
 
+@pytest.mark.launch(fixture=launch_description)
+@pytest.mark.usefixtures("robot")
 def test_trajectory_scaled(robot):
     """Test robot movement."""
     # Construct test trajectory
@@ -209,6 +228,8 @@ def test_trajectory_scaled(robot):
     assert result.error_code == FollowJointTrajectory.Result.SUCCESSFUL
 
 
+@pytest.mark.launch(fixture=launch_description)
+@pytest.mark.usefixtures("robot")
 def test_trajectory_scaled_aborts_on_violation(robot):
     """Test that the robot correctly aborts the trajectory when the constraints are violated."""
     # Construct test trajectory
@@ -287,6 +308,8 @@ def test_trajectory_scaled_aborts_on_violation(robot):
     # #     self.node.get_logger().info("Received result GOAL_TOLERANCE_VIOLATED")
 
 
+@pytest.mark.launch(fixture=launch_description)
+@pytest.mark.usefixtures("robot")
 def test_passthrough_trajectory(robot):
     if robot.mock_hardware:
         return True

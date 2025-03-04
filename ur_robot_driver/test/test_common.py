@@ -40,14 +40,12 @@ from launch.actions import (
     DeclareLaunchArgument,
     ExecuteProcess,
     IncludeLaunchDescription,
-    RegisterEventHandler,
 )
-from launch.event_handlers import OnProcessExit
+from launch.conditions import UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.substitutions import FindPackagePrefix, FindPackageShare
 
-# from launch_testing.actions import ReadyToTest
 from launch_pytest.actions import ReadyToTest
 from rclpy.action import ActionClient
 from std_srvs.srv import Trigger
@@ -320,6 +318,12 @@ class interfaces:
             FollowJointTrajectory,
         )
 
+    def start_robot(self):
+        print("Starting robot")
+        self._dashboard_interface.start_robot()
+        time.sleep(1)
+        assert self._io_status_controller_interface.resend_robot_program().success
+
 
 def _declare_launch_arguments():
     declared_arguments = []
@@ -408,20 +412,22 @@ def generate_driver_test_description(
         ),
         launch_arguments=launch_arguments.items(),
     )
-    wait_dashboard_server = ExecuteProcess(
+    ursim = ExecuteProcess(
+        condition=UnlessCondition(mock_hardware),
         cmd=[
             PathJoinSubstitution(
-                [FindPackagePrefix("ur_robot_driver"), "bin", "wait_dashboard_server.sh"]
-            )
+                [
+                    FindPackagePrefix("ur_client_library"),
+                    "lib",
+                    "ur_client_library",
+                    "start_ursim.sh",
+                ]
+            ),
+            "-m",
+            ur_type,
         ],
-        name="wait_dashboard_server",
+        name="start_ursim",
         output="screen",
     )
-    driver_starter = RegisterEventHandler(
-        OnProcessExit(target_action=wait_dashboard_server, on_exit=robot_driver)
-    )
 
-    return LaunchDescription(
-        _declare_launch_arguments()
-        + [ReadyToTest(), wait_dashboard_server, _ursim_action(), driver_starter]
-    )
+    return LaunchDescription(_declare_launch_arguments() + [ursim, robot_driver, ReadyToTest()])
