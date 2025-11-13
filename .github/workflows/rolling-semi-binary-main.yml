@@ -6,7 +6,7 @@ on:
       - main
   push:
     branches:
-      - main
+      - debug_pttc
   schedule:
     # Run every morning to detect flakiness and broken dependencies
     - cron: '13 4 * * *'
