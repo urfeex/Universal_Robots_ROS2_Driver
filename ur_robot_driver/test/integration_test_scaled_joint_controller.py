@@ -97,9 +97,18 @@ class SJTCTest(unittest.TestCase):
         time.sleep(1)
         self.assertTrue(self._io_status_controller_interface.resend_robot_program().success)
 
-        self._controller_manager_interface.wait_for_controller(
-            "scaled_joint_trajectory_controller", "active"
-        )
+        try:
+            self._controller_manager_interface.wait_for_controller(
+                "scaled_joint_trajectory_controller", "active"
+            )
+        except Exception:
+            logging.error(
+                "Controller 'scaled_joint_trajectory_controller' not active. Trying again."
+            )
+            self.assertTrue(self._io_status_controller_interface.resend_robot_program().success)
+            self._controller_manager_interface.wait_for_controller(
+                "scaled_joint_trajectory_controller", "active"
+            )
 
     #
     # Test functions
