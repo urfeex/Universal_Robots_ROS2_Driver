@@ -199,6 +199,10 @@ protected:
   urcl::vector6d_t urcl_ft_sensor_measurements_;
   urcl::vector6d_t urcl_tcp_pose_;
   urcl::vector6d_t urcl_target_tcp_pose_;
+  urcl::vector6d_t urcl_target_positions_;
+  urcl::vector6d_t urcl_target_velocities_;
+  urcl::vector6d_t urcl_target_accelerations_;
+  urcl::vector6d_t urcl_target_torques_;
   urcl::vector6d_t tcp_offset_;
   tf2::Quaternion tcp_rotation_quat_;
   Quaternion tcp_rotation_buffer;

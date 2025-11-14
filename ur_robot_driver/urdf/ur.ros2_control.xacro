@@ -71,6 +71,7 @@
           <param name="tool_device_name">${tool_device_name}</param>
           <param name="tool_tcp_port">${tool_tcp_port}</param>
           <param name="robot_receive_timeout">${robot_receive_timeout}</param>
+          <param name="status_publish_rate">100</param>
         </xacro:unless>
       </hardware>
 

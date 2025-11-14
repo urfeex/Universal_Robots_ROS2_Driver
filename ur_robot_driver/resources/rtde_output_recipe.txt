@@ -7,6 +7,10 @@ runtime_state
 actual_TCP_force
 actual_TCP_pose
 target_TCP_pose
+target_q
+target_qd
+target_qdd
+target_moment
 actual_digital_input_bits
 actual_digital_output_bits
 standard_analog_input0

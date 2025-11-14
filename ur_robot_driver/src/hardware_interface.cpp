@@ -251,6 +251,18 @@ std::vector<hardware_interface::StateInterface> URPositionHardwareInterface::exp
 
     state_interfaces.emplace_back(hardware_interface::StateInterface(
         info_.joints[i].name, hardware_interface::HW_IF_EFFORT, &urcl_joint_efforts_[i]));
+
+    state_interfaces.emplace_back(
+        hardware_interface::StateInterface(info_.joints[i].name, "target_position", &urcl_target_positions_[i]));
+
+    state_interfaces.emplace_back(
+        hardware_interface::StateInterface(info_.joints[i].name, "target_velocity", &urcl_target_velocities_[i]));
+
+    state_interfaces.emplace_back(hardware_interface::StateInterface(info_.joints[i].name, "target_acceleration",
+                                                                     &urcl_target_accelerations_[i]));
+
+    state_interfaces.emplace_back(
+        hardware_interface::StateInterface(info_.joints[i].name, "target_effort", &urcl_target_torques_[i]));
   }
 
   // Obtain the tf_prefix from the urdf so that we can have the general interface multiple times
@@ -902,6 +914,10 @@ hardware_interface::return_type URPositionHardwareInterface::read(const rclcpp::
     readBitsetData<uint32_t>(data_pkg, "analog_io_types", analog_io_types_);
     readBitsetData<uint32_t>(data_pkg, "tool_analog_input_types", tool_analog_input_types_);
     readData(data_pkg, "tcp_offset", tcp_offset_);
+    readData(data_pkg, "target_q", urcl_target_positions_);
+    readData(data_pkg, "target_qd", urcl_target_velocities_);
+    readData(data_pkg, "target_qdd", urcl_target_accelerations_);
+    readData(data_pkg, "target_moment", urcl_target_torques_);
 
     // required transforms
     extractToolPose();
