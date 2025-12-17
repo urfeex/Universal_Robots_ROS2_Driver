@@ -106,12 +106,14 @@ def launch_setup(context):
         ],
     )
 
-    tool_comm_path = PathJoinSubstitution([
-        FindPackagePrefix("ur_client_library"),
-        "lib",
-        "ur_client_library",
-        "tool_communication.py",
-    ])
+    tool_comm_path = PathJoinSubstitution(
+        [
+            FindPackagePrefix("ur_client_library"),
+            "lib",
+            "ur_client_library",
+            "tool_communication.py",
+        ]
+    )
 
     tool_communication_script = ExecuteProcess(
         name="ur_tool_comm",
@@ -119,10 +121,12 @@ def launch_setup(context):
         cmd=[
             tool_comm_path,
             robot_ip,
-            "--tcp-port", tool_tcp_port,
-            "--device-name", tool_device_name,
+            "--tcp-port",
+            tool_tcp_port,
+            "--device-name",
+            tool_device_name,
         ],
-        output="screen"
+        output="screen",
     )
 
     urscript_interface = Node(
@@ -216,6 +220,7 @@ def launch_setup(context):
         "freedrive_mode_controller",
         "tool_contact_controller",
         "motion_primitive_forward_controller",
+        "sine_controller",
     ]
     if activate_joint_controller.perform(context) == "true":
         controllers_active.append(initial_joint_controller.perform(context))
@@ -374,6 +379,7 @@ def generate_launch_description():
                 "freedrive_mode_controller",
                 "passthrough_trajectory_controller",
                 "motion_primitive_forward_controller",
+                "sine_controller",
             ],
             description="Initially loaded robot controller.",
         )
