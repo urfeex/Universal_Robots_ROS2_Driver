@@ -24,12 +24,13 @@ printed. You can use the robot as usual, however Cartesian poses of the endeffec
 inaccurate. See the "ur_calibration" package on help how to generate your own hash matching your
 actual robot.
 
-non_blocking_read (default: "true")
------------------------------------
+non_blocking_read (default: "false")
+------------------------------------
 
-If set to false, the ROS control cycle will wait for the robot to send a status update. Tests have
-shown that better real-time performance is achievable when setting this to ``true``. Required to be
-set to ``true`` when combining with other hardware components.
+If set to false, the ROS control cycle will wait for the robot to send a status update. When
+setting this to ``true``, querying the robot's state is instant, but data might be from a previous
+update. Setting this to ``false`` makes sure to wait for a new update. Use the ``false`` setting
+when making the main control loop follow the robot's cycle.
 
 output_recipe_filename (Required)
 ---------------------------------

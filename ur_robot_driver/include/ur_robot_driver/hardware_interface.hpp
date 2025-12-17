@@ -153,10 +153,10 @@ public:
 
 protected:
   template <typename T>
-  void readData(const std::unique_ptr<urcl::rtde_interface::DataPackage>& data_pkg, const std::string& var_name,
+  void readData(const std::unique_ptr<urcl::rtde_interface::RTDEPackage>& data_pkg, const std::string& var_name,
                 T& data);
   template <typename T, size_t N>
-  void readBitsetData(const std::unique_ptr<urcl::rtde_interface::DataPackage>& data_pkg, const std::string& var_name,
+  void readBitsetData(const urcl::rtde_interface::DataPackage* data_pkg, const std::string& var_name,
                       std::bitset<N>& data);
 
   // stop function used by on_shutdown and on_cleanup
@@ -175,6 +175,7 @@ protected:
   void tool_contact_callback(urcl::control::ToolContactResult);
   void check_tool_contact_controller();
 
+  std::unique_ptr<urcl::rtde_interface::RTDEPackage> data_pkg_buffer_;
   urcl::vector6d_t urcl_position_commands_;
   urcl::vector6d_t urcl_position_commands_old_;
   urcl::vector6d_t urcl_velocity_commands_;

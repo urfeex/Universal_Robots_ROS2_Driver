@@ -629,6 +629,8 @@ URPositionHardwareInterface::on_configure(const rclcpp_lifecycle::State& previou
     if (ur_driver_->getControlFrequency() != info_.rw_rate) {
       ur_driver_->resetRTDEClient(output_recipe_filename, input_recipe_filename, info_.rw_rate);
     }
+    data_pkg_buffer_ = std::make_unique<rtde::DataPackage>(ur_driver_->getRTDEOutputRecipe(), 2);
+    dynamic_cast<rtde::DataPackage*>(data_pkg_buffer_.get())->initEmpty();
   } catch (urcl::ToolCommNotAvailable& e) {
     RCLCPP_FATAL_STREAM(rclcpp::get_logger("URPositionHardwareInterface"), "See parameter use_tool_communication");
 
@@ -726,10 +728,14 @@ hardware_interface::CallbackReturn URPositionHardwareInterface::stop()
 }
 
 template <typename T>
-void URPositionHardwareInterface::readData(const std::unique_ptr<rtde::DataPackage>& data_pkg,
+void URPositionHardwareInterface::readData(const std::unique_ptr<rtde::RTDEPackage>& data_pkg,
                                            const std::string& var_name, T& data)
 {
-  if (!data_pkg->getData(var_name, data)) {
+  if (data_pkg->getType() != rtde::PackageType::RTDE_DATA_PACKAGE) {
+    std::string error_msg = "Data package is not of type DATA_PACKAGE when trying to read '" + var_name + "'";
+    throw std::runtime_error(error_msg);
+  }
+  if (!dynamic_cast<rtde::DataPackage*>(data_pkg.get())->getData(var_name, data)) {
     // This throwing should never happen unless misconfigured
     std::string error_msg = "Did not find '" + var_name + "' in data sent from robot. This should not happen!";
     throw std::runtime_error(error_msg);
@@ -737,8 +743,8 @@ void URPositionHardwareInterface::readData(const std::unique_ptr<rtde::DataPacka
 }
 
 template <typename T, size_t N>
-void URPositionHardwareInterface::readBitsetData(const std::unique_ptr<rtde::DataPackage>& data_pkg,
-                                                 const std::string& var_name, std::bitset<N>& data)
+void URPositionHardwareInterface::readBitsetData(const rtde::DataPackage* data_pkg, const std::string& var_name,
+                                                 std::bitset<N>& data)
 {
   if (!data_pkg->getData<T, N>(var_name, data)) {
     // This throwing should never happen unless misconfigured
@@ -768,39 +774,43 @@ hardware_interface::return_type URPositionHardwareInterface::read(const rclcpp::
     ur_driver_->startRTDECommunication();
     rtde_comm_has_been_started_ = true;
   }
-  std::unique_ptr<rtde::DataPackage> data_pkg = ur_driver_->getDataPackage();
-
-  if (data_pkg) {
+  if (ur_driver_->getDataPackageBlocking(data_pkg_buffer_)) {
     packet_read_ = true;
-    readData(data_pkg, "actual_q", urcl_joint_positions_);
-    readData(data_pkg, "actual_qd", urcl_joint_velocities_);
-    readData(data_pkg, "actual_current", urcl_joint_efforts_);
+    readData(data_pkg_buffer_, "actual_q", urcl_joint_positions_);
+    readData(data_pkg_buffer_, "actual_qd", urcl_joint_velocities_);
+    readData(data_pkg_buffer_, "actual_current", urcl_joint_efforts_);
 
-    readData(data_pkg, "target_speed_fraction", target_speed_fraction_);
-    readData(data_pkg, "speed_scaling", speed_scaling_);
-    readData(data_pkg, "runtime_state", runtime_state_);
-    readData(data_pkg, "actual_TCP_force", urcl_ft_sensor_measurements_);
-    readData(data_pkg, "actual_TCP_pose", urcl_tcp_pose_);
-    readData(data_pkg, "target_TCP_pose", urcl_target_tcp_pose_);
-    readData(data_pkg, "standard_analog_input0", standard_analog_input_[0]);
-    readData(data_pkg, "standard_analog_input1", standard_analog_input_[1]);
-    readData(data_pkg, "standard_analog_output0", standard_analog_output_[0]);
-    readData(data_pkg, "standard_analog_output1", standard_analog_output_[1]);
-    readData(data_pkg, "tool_mode", tool_mode_);
-    readData(data_pkg, "tool_analog_input0", tool_analog_input_[0]);
-    readData(data_pkg, "tool_analog_input1", tool_analog_input_[1]);
-    readData(data_pkg, "tool_output_voltage", tool_output_voltage_);
-    readData(data_pkg, "tool_output_current", tool_output_current_);
-    readData(data_pkg, "tool_temperature", tool_temperature_);
-    readData(data_pkg, "robot_mode", robot_mode_);
-    readData(data_pkg, "safety_mode", safety_mode_);
-    readBitsetData<uint32_t>(data_pkg, "robot_status_bits", robot_status_bits_);
-    readBitsetData<uint32_t>(data_pkg, "safety_status_bits", safety_status_bits_);
-    readBitsetData<uint64_t>(data_pkg, "actual_digital_input_bits", actual_dig_in_bits_);
-    readBitsetData<uint64_t>(data_pkg, "actual_digital_output_bits", actual_dig_out_bits_);
-    readBitsetData<uint32_t>(data_pkg, "analog_io_types", analog_io_types_);
-    readBitsetData<uint32_t>(data_pkg, "tool_analog_input_types", tool_analog_input_types_);
-    readData(data_pkg, "tcp_offset", tcp_offset_);
+    readData(data_pkg_buffer_, "target_speed_fraction", target_speed_fraction_);
+    readData(data_pkg_buffer_, "speed_scaling", speed_scaling_);
+    readData(data_pkg_buffer_, "runtime_state", runtime_state_);
+    readData(data_pkg_buffer_, "actual_TCP_force", urcl_ft_sensor_measurements_);
+    readData(data_pkg_buffer_, "actual_TCP_pose", urcl_tcp_pose_);
+    readData(data_pkg_buffer_, "target_TCP_pose", urcl_target_tcp_pose_);
+    readData(data_pkg_buffer_, "standard_analog_input0", standard_analog_input_[0]);
+    readData(data_pkg_buffer_, "standard_analog_input1", standard_analog_input_[1]);
+    readData(data_pkg_buffer_, "standard_analog_output0", standard_analog_output_[0]);
+    readData(data_pkg_buffer_, "standard_analog_output1", standard_analog_output_[1]);
+    readData(data_pkg_buffer_, "tool_mode", tool_mode_);
+    readData(data_pkg_buffer_, "tool_analog_input0", tool_analog_input_[0]);
+    readData(data_pkg_buffer_, "tool_analog_input1", tool_analog_input_[1]);
+    readData(data_pkg_buffer_, "tool_output_voltage", tool_output_voltage_);
+    readData(data_pkg_buffer_, "tool_output_current", tool_output_current_);
+    readData(data_pkg_buffer_, "tool_temperature", tool_temperature_);
+    readData(data_pkg_buffer_, "robot_mode", robot_mode_);
+    readData(data_pkg_buffer_, "safety_mode", safety_mode_);
+    readBitsetData<uint32_t>(dynamic_cast<rtde::DataPackage*>(data_pkg_buffer_.get()), "robot_status_bits",
+                             robot_status_bits_);
+    readBitsetData<uint32_t>(dynamic_cast<rtde::DataPackage*>(data_pkg_buffer_.get()), "safety_status_bits",
+                             safety_status_bits_);
+    readBitsetData<uint64_t>(dynamic_cast<rtde::DataPackage*>(data_pkg_buffer_.get()), "actual_digital_input_bits",
+                             actual_dig_in_bits_);
+    readBitsetData<uint64_t>(dynamic_cast<rtde::DataPackage*>(data_pkg_buffer_.get()), "actual_digital_output_bits",
+                             actual_dig_out_bits_);
+    readBitsetData<uint32_t>(dynamic_cast<rtde::DataPackage*>(data_pkg_buffer_.get()), "analog_io_types",
+                             analog_io_types_);
+    readBitsetData<uint32_t>(dynamic_cast<rtde::DataPackage*>(data_pkg_buffer_.get()), "tool_analog_input_types",
+                             tool_analog_input_types_);
+    readData(data_pkg_buffer_, "tcp_offset", tcp_offset_);
 
     // required transforms
     extractToolPose();
@@ -868,7 +878,7 @@ hardware_interface::return_type URPositionHardwareInterface::write(const rclcpp:
   // this was done externally using the controller_stopper.
   if ((runtime_state_ == static_cast<uint32_t>(rtde::RUNTIME_STATE::PLAYING) ||
        runtime_state_ == static_cast<uint32_t>(rtde::RUNTIME_STATE::PAUSING)) &&
-      robot_program_running_ && (!non_blocking_read_ || packet_read_)) {
+      robot_program_running_ && packet_read_) {
     if (position_controller_running_) {
       ur_driver_->writeJointCommand(urcl_position_commands_, urcl::comm::ControlMode::MODE_SERVOJ, receive_timeout_);
 
