@@ -40,6 +40,7 @@
  */
 //----------------------------------------------------------------------
 #include <algorithm>
+#include <cmath>
 #include <memory>
 #include <string>
 #include <utility>
@@ -193,6 +194,12 @@ URPositionHardwareInterface::on_init(const hardware_interface::HardwareComponent
     force_mode_limits_[i] = NO_NEW_CMD_;
   }
   force_mode_type_ = static_cast<unsigned int>(NO_NEW_CMD_);
+
+  for (size_t i = 0; i < 6; ++i) {
+    path_offset_[i] = NO_NEW_CMD_;
+  }
+  path_offset_enable_ = NO_NEW_CMD_;
+  path_offset_type_ = NO_NEW_CMD_;
 
   for (const hardware_interface::ComponentInfo& joint : info_.joints) {
     auto has_cmd_interface = [](const hardware_interface::ComponentInfo& joint, const std::string& interface_name) {
@@ -466,6 +473,16 @@ std::vector<hardware_interface::CommandInterface> URPositionHardwareInterface::e
   command_interfaces.emplace_back(tf_prefix + FORCE_MODE_GPIO, "disable_cmd", &force_mode_disable_cmd_);
   command_interfaces.emplace_back(tf_prefix + FORCE_MODE_GPIO, "damping", &force_mode_damping_);
   command_interfaces.emplace_back(tf_prefix + FORCE_MODE_GPIO, "gain_scaling", &force_mode_gain_scaling_);
+
+  command_interfaces.emplace_back(tf_prefix + "path_offset", "path_offset_x", &path_offset_[0]);
+  command_interfaces.emplace_back(tf_prefix + "path_offset", "path_offset_y", &path_offset_[1]);
+  command_interfaces.emplace_back(tf_prefix + "path_offset", "path_offset_z", &path_offset_[2]);
+  command_interfaces.emplace_back(tf_prefix + "path_offset", "path_offset_rx", &path_offset_[3]);
+  command_interfaces.emplace_back(tf_prefix + "path_offset", "path_offset_ry", &path_offset_[4]);
+  command_interfaces.emplace_back(tf_prefix + "path_offset", "path_offset_rz", &path_offset_[5]);
+  command_interfaces.emplace_back(tf_prefix + "path_offset", "path_offset_type", &path_offset_type_);
+  command_interfaces.emplace_back(tf_prefix + "path_offset", "path_offset_enable", &path_offset_enable_);
+  command_interfaces.emplace_back(tf_prefix + "path_offset", "async_success", &path_offset_async_success_);
 
   for (size_t i = 0; i < 18; ++i) {
     command_interfaces.emplace_back(hardware_interface::CommandInterface(
@@ -1006,6 +1023,22 @@ hardware_interface::return_type URPositionHardwareInterface::write(const rclcpp:
       start_force_mode();
     } else if (!std::isnan(force_mode_disable_cmd_) && ur_driver_ != nullptr && force_mode_async_success_ == 2.0) {
       stop_force_mode();
+    }
+
+    if (!std::isnan(path_offset_[0]) && !std::isnan(path_offset_[1]) && !std::isnan(path_offset_[2]) &&
+        !std::isnan(path_offset_[3]) && !std::isnan(path_offset_[4]) && !std::isnan(path_offset_[5]) &&
+        !std::isnan(path_offset_type_) && ur_driver_ != nullptr) {
+      ur_driver_->setPathOffset(path_offset_, static_cast<uint32_t>(std::round(path_offset_type_)));
+      path_offset_ = { NO_NEW_CMD_, NO_NEW_CMD_, NO_NEW_CMD_, NO_NEW_CMD_, NO_NEW_CMD_, NO_NEW_CMD_ };
+    }
+
+    if (!std::isnan(path_offset_enable_) && ur_driver_ != nullptr) {
+      if (path_offset_enable_ == 1.0) {
+        ur_driver_->pathOffsetSetEnabled(true);
+      } else if (path_offset_enable_ == 0.0) {
+        ur_driver_->pathOffsetSetEnabled(false);
+      }
+      path_offset_enable_ = NO_NEW_CMD_;
     }
 
     if (tool_contact_controller_running_) {

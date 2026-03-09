@@ -291,6 +291,11 @@ protected:
   double force_mode_damping_;
   double force_mode_gain_scaling_;
 
+  urcl::vector6d_t path_offset_;
+  double path_offset_type_;
+  double path_offset_enable_;
+  double path_offset_async_success_;
+
   //*************** Motion primitives stuff ***************
   std::shared_ptr<urcl::InstructionExecutor> instruction_executor_;
 

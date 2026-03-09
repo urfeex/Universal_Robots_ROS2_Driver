@@ -100,6 +100,7 @@ add_library(${PROJECT_NAME} SHARED
   src/freedrive_mode_controller.cpp
   src/gpio_controller.cpp
   src/passthrough_trajectory_controller.cpp
+  src/path_offset_controller.cpp
   src/ur_configuration_controller.cpp)
 
 target_include_directories(${PROJECT_NAME} PRIVATE

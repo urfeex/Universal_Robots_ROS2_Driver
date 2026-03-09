@@ -341,6 +341,18 @@
         <state_interface name="ready_for_new_primitive"/>
       </gpio>
 
+      <gpio name="${tf_prefix}path_offset">
+        <command_interface name="path_offset_x"/>
+        <command_interface name="path_offset_y"/>
+        <command_interface name="path_offset_z"/>
+        <command_interface name="path_offset_rx"/>
+        <command_interface name="path_offset_ry"/>
+        <command_interface name="path_offset_rz"/>
+        <command_interface name="path_offset_type"/>
+        <command_interface name="path_offset_enable"/>
+        <command_interface name="async_success"/>
+      </gpio>
+
     </ros2_control>
   </xacro:macro>
 </robot>
